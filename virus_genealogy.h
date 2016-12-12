@@ -6,6 +6,7 @@
 #include <set>
 #include <stdexcept>
 #include <vector>
+#include <memory>
 
 class VirusNotFound : public std::exception {};
 class VirusAlreadyCreated : public std::exception {};
@@ -19,7 +20,7 @@ class VirusGenealogy {
 
 public:
 	VirusGenealogy(const id_type & stem_id) : stem_id(stem_id) {
-		viruses.insert({stem_id, Virus(stem_id)});
+		viruses[stem_id] = std::make_unique<Virus>(stem_id);
 	}
 
 	id_type get_stem_id() const {
@@ -40,7 +41,7 @@ public:
 
 	Virus & operator[] (const id_type & id) const{
 		if (viruses.find(id) != viruses.end())
-			return viruses[id];
+			return *viruses.at(id);
 		else
 			throw VirusNotFound();
 	}
@@ -79,17 +80,21 @@ public:
 
 private:
 	id_type stem_id;
-	std::map<id_type, Virus> viruses;
+	std::map<id_type, std::unique_ptr<Virus>> viruses;
 	dependency_map sons;
 	dependency_map parents;
 
 	std::vector<id_type> get_dependent_viruses(
 			const id_type & id, const dependency_map & dependency) const {
-		if (dependency.find(id) != dependency.end()){
-			std::vector<id_type> result(dependency[id].size());
-			std::copy(dependency[id].begin(),
-				dependency[id].end(),
-				result.begin());
+		if (viruses.find(id) != viruses.end()){
+			std::vector<id_type> result;
+			
+			if (dependency.find(id) != dependency.end()){
+				result.resize(dependency.at(id).size());
+				std::copy(dependency.at(id).begin(),
+					dependency.at(id).end(),
+					result.begin());
+			}
 
 			return result;
 		}
