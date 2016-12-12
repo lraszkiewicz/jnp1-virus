@@ -3,10 +3,10 @@
 
 #include <algorithm>
 #include <map>
+#include <memory>
 #include <set>
 #include <stdexcept>
 #include <vector>
-#include <memory>
 
 class VirusNotFound : public std::exception {};
 class VirusAlreadyCreated : public std::exception {};
@@ -39,11 +39,13 @@ public:
 		return (viruses.find(id) != viruses.end());
 	}
 
-	Virus & operator[] (const id_type & id) const{
-		if (viruses.find(id) != viruses.end())
+	Virus & operator[] (const id_type & id) const {
+		try {
 			return *viruses.at(id);
-		else
+		}
+		catch (const std::out_of_range & oor) {
 			throw VirusNotFound();
+		}
 	}
 
 	void create(const id_type & id, const id_type & parent_id) {
@@ -86,14 +88,15 @@ private:
 
 	std::vector<id_type> get_dependent_viruses(
 			const id_type & id, const dependency_map & dependency) const {
-		if (viruses.find(id) != viruses.end()){
+		if (viruses.find(id) != viruses.end()) {
 			std::vector<id_type> result;
-			
-			if (dependency.find(id) != dependency.end()){
-				result.resize(dependency.at(id).size());
-				std::copy(dependency.at(id).begin(),
-					dependency.at(id).end(),
-					result.begin());
+
+			if (dependency.find(id) != dependency.end()) {
+				std::set<id_type> & dependency_at_id = dependency.at(id);
+				result.resize(dependency_at_id.size());
+				std::copy(dependency_at_id.begin(),
+						  dependency_at_id.end(),
+					      result.begin());
 			}
 
 			return result;
