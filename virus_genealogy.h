@@ -53,7 +53,28 @@ public:
 			throw VirusAlreadyCreated();
 		if (viruses.find(parent_id) == viruses.end())
 			throw VirusNotFound();
-		// TODO
+			
+		std::set<id_type> empty_set;
+		
+		std::set<id_type> local_parents;
+		std::set<id_type> local_sons = sons[parent_id];
+	
+		std::set<id_type> & its_sons = sons[parent_id];
+		
+		std::unique_ptr<Virus> virus = std::make_unique<Virus>(id);
+		
+		local_parents.insert(parent_id);
+		local_sons.insert(id);
+		
+		if (parents.find(id) != parents.end())
+			parents.insert(std::make_pair(id, empty_set));
+		
+		std::set<id_type> & its_parents = parents[id];
+		
+		viruses.insert(std::make_pair(id, std::move(virus)));
+		
+		its_parents = std::move(local_parents);
+		its_sons = std::move(local_sons);
 	}
 
 	void create(const id_type & id, const std::vector<id_type> & parent_ids) {
@@ -92,7 +113,7 @@ private:
 			std::vector<id_type> result;
 
 			if (dependency.find(id) != dependency.end()) {
-				std::set<id_type> & dependency_at_id = dependency.at(id);
+				const std::set<id_type> & dependency_at_id = dependency.at(id);
 				result.resize(dependency_at_id.size());
 				std::copy(dependency_at_id.begin(),
 						  dependency_at_id.end(),
