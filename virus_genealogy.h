@@ -54,8 +54,6 @@ public:
 		if (viruses_.find(parent_id) == viruses_.end())
 			throw VirusNotFound();
 
-		std::set<id_type> empty_set;
-
 		std::set<id_type> local_parents;
 		std::set<id_type> local_sons = sons_[parent_id];
 
@@ -79,8 +77,6 @@ public:
 		for (auto it = parent_ids.begin(); it != parent_ids.end(); ++it)
 			if (viruses_.find(*it) == viruses_.end())
 				throw VirusNotFound();
-
-		std::set<id_type> empty_set;
 
 		std::set<id_type> local_parents;
 		std::vector< std::set<id_type> > local_sons;
