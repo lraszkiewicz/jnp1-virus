@@ -59,17 +59,13 @@ public:
 		std::set<id_type> local_parents;
 		std::set<id_type> local_sons = sons_[parent_id];
 
+		std::set<id_type> & its_parents = parents_[id];
 		std::set<id_type> & its_sons = sons_[parent_id];
 
 		std::unique_ptr<Virus> virus = std::make_unique<Virus>(id);
 
 		local_parents.insert(parent_id);
 		local_sons.insert(id);
-
-		if (parents_.find(id) != parents_.end())
-			parents_.insert(std::make_pair(id, empty_set));
-
-		std::set<id_type> & its_parents = parents_[id];
 
 		viruses_.insert(std::make_pair(id, std::move(virus)));
 
@@ -88,6 +84,8 @@ public:
 
 		std::set<id_type> local_parents;
 		std::vector< std::set<id_type> > local_sons;
+
+		std::set<id_type> & its_parents = parents_[id];
 		std::vector< std::reference_wrapper< std::set<id_type> > > its_sons;
 
 		size_t n = parent_ids.size();
@@ -99,11 +97,6 @@ public:
 		}
 
 		std::unique_ptr<Virus> virus = std::make_unique<Virus>(id);
-
-		if (parents_.find(id) != parents_.end())
-			parents_.insert(std::make_pair(id, empty_set));
-
-		std::set<id_type> & its_parents = parents_[id];
 
 		viruses_.insert(std::make_pair(id, std::move(virus)));
 
@@ -118,11 +111,6 @@ public:
 			throw VirusNotFound();
 
 			std::set<id_type> empty_set;
-
-			if (sons_.find(parent_id) == sons_.end())
-				sons_.insert(std::make_pair(parent_id, empty_set));
-			if (parents_.find(child_id) == parents_.end())
-				parents_.insert(std::make_pair(child_id, empty_set));
 
 			std::set<id_type> local_sons = sons_[parent_id];
 			std::set<id_type> & ref_sons = sons_[parent_id];
