@@ -85,7 +85,7 @@ public:
 		std::vector< std::reference_wrapper< std::set<id_type> > > its_sons;
 
 		size_t n = parent_ids.size();
-		for (size_t i = 0; i < n; i++) {
+		for (size_t i = 0; i < n; ++i) {
 			local_sons.push_back(sons_[parent_ids[i]]);
 			local_sons[i].insert(id);
 			its_sons.push_back(sons_[parent_ids[i]]);
@@ -97,7 +97,7 @@ public:
 		viruses_.insert(std::make_pair(id, std::move(virus)));
 
 		its_parents = std::move(local_parents);
-		for (size_t i = 0; i < n; i++)
+		for (size_t i = 0; i < n; ++i)
 			its_sons[i].get() = std::move(local_sons[i]);
 	}
 
@@ -123,7 +123,43 @@ public:
 			throw VirusNotFound();
 		if (id == stem_id_)
 			throw TriedToRemoveStemVirus();
-		// TODO
+
+		auto viruses_it = viruses_.find(id);
+		auto sons_it = sons_.find(id);
+		auto parents_it = parents_.find(id);
+
+		std::vector< std::set<id_type> > local_sons;
+		std::vector< std::reference_wrapper< std::set<id_type> > > ref_sons;
+
+		for (id_type parent : parents_[id]) {
+			local_sons.push_back(sons_[parent]);
+			local_sons.back().erase(id);
+			ref_sons.push_back(sons_[parent]);
+		}
+
+		std::vector< std::set<id_type> > local_parents;
+		std::vector< std::reference_wrapper< std::set<id_type> > > ref_parents;
+
+		for (id_type son : sons_[id]) {
+			local_parents.push_back(parents_[son]);
+			local_parents.back().erase(id);
+			ref_parents.push_back(parents_[son]);
+		}
+
+		size_t n = local_sons.size();
+		for (size_t i = 0; i < n; ++i)
+			ref_sons[i].get() = std::move(local_sons[i]);
+
+		n = local_parents.size();
+		for (size_t i = 0; i < n; ++i)
+			ref_parents[i].get() = std::move(local_parents[i]);
+
+		if (viruses_it != viruses_.end())
+			viruses_.erase(viruses_it);
+		if (sons_it != sons_.end())
+			sons_.erase(sons_it);
+		if (parents_it != parents_.end())
+			parents_.erase(parents_it);
 	}
 
 private:
