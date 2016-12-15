@@ -106,8 +106,6 @@ public:
 				|| viruses_.find(parent_id) == viruses_.end())
 			throw VirusNotFound();
 
-			std::set<id_type> empty_set;
-
 			std::set<id_type> local_sons = sons_[parent_id];
 			std::set<id_type> & ref_sons = sons_[parent_id];
 			std::set<id_type> local_parents = parents_[child_id];
