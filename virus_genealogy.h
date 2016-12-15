@@ -91,7 +91,7 @@ public:
 		std::vector< std::reference_wrapper< std::set<id_type> > > its_sons;
 
 		size_t n = parent_ids.size();
-		for (int i = 0; i < n; i++) {
+		for (size_t i = 0; i < n; i++) {
 			local_sons.push_back(sons_[parent_ids[i]]);
 			local_sons[i].insert(id);
 			its_sons.push_back(sons_[parent_ids[i]]);
@@ -108,7 +108,7 @@ public:
 		viruses_.insert(std::make_pair(id, std::move(virus)));
 
 		its_parents = std::move(local_parents);
-		for (int i = 0; i < n; i++)
+		for (size_t i = 0; i < n; i++)
 			its_sons[i].get() = std::move(local_sons[i]);
 	}
 
@@ -116,7 +116,24 @@ public:
 		if (viruses_.find(child_id) == viruses_.end()
 				|| viruses_.find(parent_id) == viruses_.end())
 			throw VirusNotFound();
-		// TODO
+
+			std::set<id_type> empty_set;
+
+			if (sons_.find(parent_id) == sons_.end())
+				sons_.insert(std::make_pair(parent_id, empty_set));
+			if (parents_.find(child_id) == parents_.end())
+				parents_.insert(std::make_pair(child_id, empty_set));
+
+			std::set<id_type> local_sons = sons_[parent_id];
+			std::set<id_type> & ref_sons = sons_[parent_id];
+			std::set<id_type> local_parents = parents_[child_id];
+			std::set<id_type> & ref_parents = parents_[child_id];
+
+			local_sons.insert(parent_id);
+			local_parents.insert(child_id);
+
+			ref_sons = std::move(local_sons);
+			ref_parents = std::move(local_parents);
 	}
 
 	void remove(const id_type & id) {
@@ -141,9 +158,11 @@ private:
 			if (dependency.find(id) != dependency.end()) {
 				const std::set<id_type> & dependency_at_id = dependency.at(id);
 				result.resize(dependency_at_id.size());
-				std::copy(dependency_at_id.begin(),
+				std::copy(
+					dependency_at_id.begin(),
 					dependency_at_id.end(),
-					result.begin());
+					result.begin()
+				);
 			}
 
 			return result;
