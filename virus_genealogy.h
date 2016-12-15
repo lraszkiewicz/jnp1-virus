@@ -1,3 +1,5 @@
+// Łukasz Raszkiewicz, Adrian Akerman
+
 #ifndef VIRUS_GENEALOGY_H
 #define VIRUS_GENEALOGY_H
 
@@ -7,6 +9,7 @@
 #include <set>
 #include <stdexcept>
 #include <vector>
+#include <queue>
 
 class VirusNotFound : public std::exception {
 	const char* what() const noexcept {
@@ -20,7 +23,7 @@ class VirusAlreadyCreated : public std::exception {
 	}
 };
 class TriedToRemoveStemVirus : public std::exception {
-	const char * what() const noexcept {
+	const char* what() const noexcept {
 		return "TriedToRemoveStemVirus";
 	}
 };
@@ -30,6 +33,7 @@ class VirusGenealogy {
 
 	typedef typename Virus::id_type id_type;
 	typedef std::map< id_type, std::set<id_type> > dependency_map;
+	typedef std::map< id_type, std::unique_ptr<Virus> > virus_ptr_map;
 
 public:
 	VirusGenealogy(const id_type & stem_id) : stem_id_(stem_id) {
@@ -122,16 +126,16 @@ public:
 				|| viruses_.find(parent_id) == viruses_.end())
 			throw VirusNotFound();
 
-			std::set<id_type> local_sons = sons_[parent_id];
-			std::set<id_type> & ref_sons = sons_[parent_id];
-			std::set<id_type> local_parents = parents_[child_id];
-			std::set<id_type> & ref_parents = parents_[child_id];
+		std::set<id_type> local_sons = sons_[parent_id];
+		std::set<id_type> & ref_sons = sons_[parent_id];
+		std::set<id_type> local_parents = parents_[child_id];
+		std::set<id_type> & ref_parents = parents_[child_id];
 
-			local_sons.insert(child_id);
-			local_parents.insert(parent_id);
+		local_sons.insert(child_id);
+		local_parents.insert(parent_id);
 
-			ref_sons = std::move(local_sons);
-			ref_parents = std::move(local_parents);
+		ref_sons = std::move(local_sons);
+		ref_parents = std::move(local_parents);
 	}
 
 	void remove(const id_type & id) {
@@ -140,57 +144,53 @@ public:
 		if (id == stem_id_)
 			throw TriedToRemoveStemVirus();
 
-		auto viruses_it = viruses_.find(id);
-		auto sons_it = sons_.find(id);
-		auto parents_it = parents_.find(id);
+		dependency_map sons_copy = sons_;
+		dependency_map parents_copy = parents_;
 
-		std::vector< std::set<id_type> > local_sons;
-		std::vector< std::reference_wrapper< std::set<id_type> > > ref_sons;
+		std::set<id_type> viruses_to_remove;
+		viruses_to_remove.insert(id);
+		std::queue<id_type> virus_queue;
+		std::set<id_type> queue_set;
+		virus_queue.push(id);
+		queue_set.insert(id);
 
-		for (id_type parent : parents_[id]) {
-			local_sons.push_back(sons_[parent]);
-			local_sons.back().erase(id);
-			ref_sons.push_back(sons_[parent]);
-		}
+		while (!virus_queue.empty()) {
+			id_type virus_id = virus_queue.front();
+			virus_queue.pop();
+			queue_set.erase(virus_id);
 
-		std::vector<id_type> viruses_to_remove;
+			if (parents_copy[virus_id].empty())
+				viruses_to_remove.insert(virus_id);
 
-		std::vector< std::set<id_type> > local_parents;
-		std::vector< std::reference_wrapper< std::set<id_type> > > ref_parents;
+			if (viruses_to_remove.find(virus_id) != viruses_to_remove.end()) {
+				for (id_type parent : parents_copy[virus_id])
+					sons_copy[parent].erase(virus_id);
 
-		for (id_type son : sons_[id]) {
-			local_parents.push_back(parents_[son]);
-			local_parents.back().erase(id);
-			if (local_parents.back().size() == 0) {
-				local_parents.pop_back();
-				viruses_to_remove.push_back(son);
+				for (id_type son : sons_copy[virus_id]) {
+					if (queue_set.find(son) == queue_set.end()) {
+						virus_queue.push(son);
+						queue_set.insert(son);
+					}
+					parents_copy[son].erase(virus_id);
+				}
+				sons_copy.erase(virus_id);
+				parents_copy.erase(virus_id);
 			}
-			else
-				ref_parents.push_back(parents_[son]);
 		}
 
-		for (id_type virus_to_remove : viruses_to_remove)
-			remove(virus_to_remove);
+		std::vector<typename virus_ptr_map::iterator> viruses_to_remove_it;
+		for (id_type virus_id : viruses_to_remove)
+			viruses_to_remove_it.push_back(viruses_.find(virus_id));
 
-		size_t n = local_sons.size();
-		for (size_t i = 0; i < n; ++i)
-			ref_sons[i].get() = std::move(local_sons[i]);
-
-		n = local_parents.size();
-		for (size_t i = 0; i < n; ++i)
-			ref_parents[i].get() = std::move(local_parents[i]);
-
-		if (viruses_it != viruses_.end())
-			viruses_.erase(viruses_it);
-		if (sons_it != sons_.end())
-			sons_.erase(sons_it);
-		if (parents_it != parents_.end())
-			parents_.erase(parents_it);
+		for (auto it : viruses_to_remove_it)
+			viruses_.erase(it);
+		sons_ = std::move(sons_copy);
+		parents_ = std::move(parents_copy);
 	}
 
 private:
 	id_type stem_id_;
-	std::map<id_type, std::unique_ptr<Virus>> viruses_;
+	virus_ptr_map viruses_;
 	dependency_map sons_;
 	dependency_map parents_;
 
