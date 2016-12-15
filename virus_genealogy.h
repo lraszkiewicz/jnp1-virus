@@ -22,7 +22,7 @@ public:
 	VirusGenealogy(const id_type & stem_id) : stem_id_(stem_id) {
 		viruses_[stem_id] = std::make_unique<Virus>(stem_id);
 	}
-	
+
 	VirusGenealogy(const VirusGenealogy &) = delete;
 	VirusGenealogy & operator = (const VirusGenealogy &) = delete;
 
@@ -114,8 +114,8 @@ public:
 			std::set<id_type> local_parents = parents_[child_id];
 			std::set<id_type> & ref_parents = parents_[child_id];
 
-			local_sons.insert(parent_id);
-			local_parents.insert(child_id);
+			local_sons.insert(child_id);
+			local_parents.insert(parent_id);
 
 			ref_sons = std::move(local_sons);
 			ref_parents = std::move(local_parents);
@@ -140,14 +140,24 @@ public:
 			ref_sons.push_back(sons_[parent]);
 		}
 
+		std::vector<id_type> viruses_to_remove;
+
 		std::vector< std::set<id_type> > local_parents;
 		std::vector< std::reference_wrapper< std::set<id_type> > > ref_parents;
 
 		for (id_type son : sons_[id]) {
 			local_parents.push_back(parents_[son]);
 			local_parents.back().erase(id);
-			ref_parents.push_back(parents_[son]);
+			if (local_parents.back().size() == 0) {
+				local_parents.pop_back();
+				viruses_to_remove.push_back(son);
+			}
+			else
+				ref_parents.push_back(parents_[son]);
 		}
+
+		for (id_type virus_to_remove : viruses_to_remove)
+			remove(virus_to_remove);
 
 		size_t n = local_sons.size();
 		for (size_t i = 0; i < n; ++i)
