@@ -19,29 +19,29 @@ class VirusGenealogy {
 	typedef std::map< id_type, std::set<id_type> > dependency_map;
 
 public:
-	VirusGenealogy(const id_type & stem_id) : stem_id(stem_id) {
-		viruses[stem_id] = std::make_unique<Virus>(stem_id);
+	VirusGenealogy(const id_type & stem_id) : stem_id_(stem_id) {
+		viruses_[stem_id] = std::make_unique<Virus>(stem_id);
 	}
 
 	id_type get_stem_id() const {
-		return stem_id;
+		return stem_id_;
 	}
 
 	std::vector<id_type> get_children(const id_type & id) const {
-		return get_dependent_viruses(id, sons);
+		return get_dependent_viruses(id, sons_);
 	}
 
 	std::vector<id_type> get_parents(const id_type & id) const {
-		return get_dependent_viruses(id, parents);
+		return get_dependent_viruses(id, parents_);
 	}
 
 	bool exists(const id_type & id) const {
-		return (viruses.find(id) != viruses.end());
+		return (viruses_.find(id) != viruses_.end());
 	}
 
 	Virus & operator[] (const id_type & id) const {
 		try {
-			return *viruses.at(id);
+			return *viruses_.at(id);
 		}
 		catch (const std::out_of_range & oor) {
 			throw VirusNotFound();
@@ -49,39 +49,39 @@ public:
 	}
 
 	void create(const id_type & id, const id_type & parent_id) {
-		if (viruses.find(id) != viruses.end())
+		if (viruses_.find(id) != viruses_.end())
 			throw VirusAlreadyCreated();
-		if (viruses.find(parent_id) == viruses.end())
+		if (viruses_.find(parent_id) == viruses_.end())
 			throw VirusNotFound();
 
 		std::set<id_type> empty_set;
 
 		std::set<id_type> local_parents;
-		std::set<id_type> local_sons = sons[parent_id];
+		std::set<id_type> local_sons = sons_[parent_id];
 
-		std::set<id_type> & its_sons = sons[parent_id];
+		std::set<id_type> & its_sons = sons_[parent_id];
 
 		std::unique_ptr<Virus> virus = std::make_unique<Virus>(id);
 
 		local_parents.insert(parent_id);
 		local_sons.insert(id);
 
-		if (parents.find(id) != parents.end())
-			parents.insert(std::make_pair(id, empty_set));
+		if (parents_.find(id) != parents_.end())
+			parents_.insert(std::make_pair(id, empty_set));
 
-		std::set<id_type> & its_parents = parents[id];
+		std::set<id_type> & its_parents = parents_[id];
 
-		viruses.insert(std::make_pair(id, std::move(virus)));
+		viruses_.insert(std::make_pair(id, std::move(virus)));
 
 		its_parents = std::move(local_parents);
 		its_sons = std::move(local_sons);
 	}
 
 	void create(const id_type & id, const std::vector<id_type> & parent_ids) {
-		if (viruses.find(id) != viruses.end())
+		if (viruses_.find(id) != viruses_.end())
 			throw VirusAlreadyCreated();
 		for (auto it = parent_ids.begin(); it != parent_ids.end(); ++it)
-			if (viruses.find(*it) == viruses.end())
+			if (viruses_.find(*it) == viruses_.end())
 				throw VirusNotFound();
 
 		std::set<id_type> empty_set;
@@ -90,22 +90,22 @@ public:
 		std::vector< std::set<id_type> > local_sons;
 		std::vector< std::reference_wrapper< std::set<id_type> > > its_sons;
 
-		int n = parent_ids.size();
+		size_t n = parent_ids.size();
 		for (int i = 0; i < n; i++) {
-			local_sons.push_back(sons[parent_ids[i]]);
+			local_sons.push_back(sons_[parent_ids[i]]);
 			local_sons[i].insert(id);
-			its_sons.push_back(sons[parent_ids[i]]);
+			its_sons.push_back(sons_[parent_ids[i]]);
 			local_parents.insert(parent_ids[i]);
 		}
 
 		std::unique_ptr<Virus> virus = std::make_unique<Virus>(id);
 
-		if (parents.find(id) != parents.end())
-			parents.insert(std::make_pair(id, empty_set));
+		if (parents_.find(id) != parents_.end())
+			parents_.insert(std::make_pair(id, empty_set));
 
-		std::set<id_type> & its_parents = parents[id];
+		std::set<id_type> & its_parents = parents_[id];
 
-		viruses.insert(std::make_pair(id, std::move(virus)));
+		viruses_.insert(std::make_pair(id, std::move(virus)));
 
 		its_parents = std::move(local_parents);
 		for (int i = 0; i < n; i++)
@@ -113,29 +113,29 @@ public:
 	}
 
 	void connect(const id_type & child_id, const id_type & parent_id) {
-		if (viruses.find(child_id) == viruses.end()
-				|| viruses.find(parent_id) == viruses.end())
+		if (viruses_.find(child_id) == viruses_.end()
+				|| viruses_.find(parent_id) == viruses_.end())
 			throw VirusNotFound();
 		// TODO
 	}
 
 	void remove(const id_type & id) {
-		if (viruses.find(id) == viruses.end())
+		if (viruses_.find(id) == viruses_.end())
 			throw VirusNotFound();
-		if (id == stem_id)
+		if (id == stem_id_)
 			throw TriedToRemoveStemVirus();
 		// TODO
 	}
 
 private:
-	id_type stem_id;
-	std::map<id_type, std::unique_ptr<Virus>> viruses;
-	dependency_map sons;
-	dependency_map parents;
+	id_type stem_id_;
+	std::map<id_type, std::unique_ptr<Virus>> viruses_;
+	dependency_map sons_;
+	dependency_map parents_;
 
 	std::vector<id_type> get_dependent_viruses(
 			const id_type & id, const dependency_map & dependency) const {
-		if (viruses.find(id) != viruses.end()) {
+		if (viruses_.find(id) != viruses_.end()) {
 			std::vector<id_type> result;
 
 			if (dependency.find(id) != dependency.end()) {
