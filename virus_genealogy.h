@@ -8,9 +8,22 @@
 #include <stdexcept>
 #include <vector>
 
-class VirusNotFound : public std::exception {};
-class VirusAlreadyCreated : public std::exception {};
-class TriedToRemoveStemVirus : public std::exception {};
+class VirusNotFound : public std::exception {
+	const char* what() const noexcept {
+		return "VirusNotFound";
+	}
+};
+
+class VirusAlreadyCreated : public std::exception {
+	const char* what() const noexcept {
+		return "VirusAlreadyCreated";
+	}
+};
+class TriedToRemoveStemVirus : public std::exception {
+	const char * what() const noexcept {
+		return "TriedToRemoveStemVirus";
+	}
+};
 
 template <class Virus>
 class VirusGenealogy {
