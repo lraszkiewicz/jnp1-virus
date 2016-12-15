@@ -53,26 +53,26 @@ public:
 			throw VirusAlreadyCreated();
 		if (viruses.find(parent_id) == viruses.end())
 			throw VirusNotFound();
-			
+
 		std::set<id_type> empty_set;
-		
+
 		std::set<id_type> local_parents;
 		std::set<id_type> local_sons = sons[parent_id];
-	
+
 		std::set<id_type> & its_sons = sons[parent_id];
-		
+
 		std::unique_ptr<Virus> virus = std::make_unique<Virus>(id);
-		
+
 		local_parents.insert(parent_id);
 		local_sons.insert(id);
-		
+
 		if (parents.find(id) != parents.end())
 			parents.insert(std::make_pair(id, empty_set));
-		
+
 		std::set<id_type> & its_parents = parents[id];
-		
+
 		viruses.insert(std::make_pair(id, std::move(virus)));
-		
+
 		its_parents = std::move(local_parents);
 		its_sons = std::move(local_sons);
 	}
@@ -83,7 +83,33 @@ public:
 		for (auto it = parent_ids.begin(); it != parent_ids.end(); ++it)
 			if (viruses.find(*it) == viruses.end())
 				throw VirusNotFound();
-		// TODO
+
+		std::set<id_type> empty_set;
+
+		std::set<id_type> local_parents;
+		std::vector< std::set<id_type> > local_sons;
+		std::vector< std::reference_wrapper< std::set<id_type> > > its_sons;
+
+		int n = parent_ids.size();
+		for (int i = 0; i < n; i++) {
+			local_sons.push_back(sons[parent_ids[i]]);
+			local_sons[i].insert(id);
+			its_sons.push_back(sons[parent_ids[i]]);
+			local_parents.insert(parent_ids[i]);
+		}
+
+		std::unique_ptr<Virus> virus = std::make_unique<Virus>(id);
+
+		if (parents.find(id) != parents.end())
+			parents.insert(std::make_pair(id, empty_set));
+
+		std::set<id_type> & its_parents = parents[id];
+
+		viruses.insert(std::make_pair(id, std::move(virus)));
+
+		its_parents = std::move(local_parents);
+		for (int i = 0; i < n; i++)
+			its_sons[i].get() = std::move(local_sons[i]);
 	}
 
 	void connect(const id_type & child_id, const id_type & parent_id) {
@@ -116,8 +142,8 @@ private:
 				const std::set<id_type> & dependency_at_id = dependency.at(id);
 				result.resize(dependency_at_id.size());
 				std::copy(dependency_at_id.begin(),
-						  dependency_at_id.end(),
-					      result.begin());
+					dependency_at_id.end(),
+					result.begin());
 			}
 
 			return result;
