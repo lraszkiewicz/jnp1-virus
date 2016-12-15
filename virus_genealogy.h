@@ -22,6 +22,9 @@ public:
 	VirusGenealogy(const id_type & stem_id) : stem_id_(stem_id) {
 		viruses_[stem_id] = std::make_unique<Virus>(stem_id);
 	}
+	
+	VirusGenealogy(const VirusGenealogy &) = delete;
+	VirusGenealogy & operator = (const VirusGenealogy &) = delete;
 
 	id_type get_stem_id() const {
 		return stem_id_;
